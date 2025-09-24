@@ -43,7 +43,12 @@ jobs:
       if: ${{ github.event.inputs.force_update == 'true' }}
       run: |
         cd wiki-repo
-        find . -name ".git" -prune -o -type f -exec rm {} \;
+        # 清空目录（保留.git）
+        for file in *; do
+          if [ "$file" != ".git" ] && [ -e "$file" ]; then
+            rm -rf "$file"
+          fi
+        done
         echo "Wiki repository cleaned for force update"
 
     - name: Check and Sync Local Wiki Content
@@ -56,7 +61,12 @@ jobs:
           mkdir -p wiki-repo
           
           if [ "${{ github.event.inputs.sync_type }}" = "full" ]; then
-            find wiki-repo -mindepth 1 -name ".git" -prune -o -type f -delete
+            # 清空wiki仓库内容（保留.git目录）
+            for file in wiki-repo/*; do
+              if [ "$(basename "$file")" != ".git" ] && [ -e "$file" ]; then
+                rm -rf "$file"
+              fi
+            done
             echo "🧽 已清空目标wiki仓库（全量同步模式）"
           fi
           

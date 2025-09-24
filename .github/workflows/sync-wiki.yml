@@ -50,7 +50,14 @@ jobs:
       run: |
         mkdir -p wiki-repo
         
-        find wiki-repo -mindepth 1 -name ".git" -prune -o -type f -delete
+        # 清空wiki仓库内容（保留.git目录）
+        find wiki-repo -mindepth 1 -name ".git" -type d -prune -o -type f -delete 2>/dev/null || true
+        # 或者使用更安全的方法
+        for file in wiki-repo/*; do
+          if [ "$(basename "$file")" != ".git" ] && [ -e "$file" ]; then
+            rm -rf "$file"
+          fi
+        done
         
         if [ -d ".qoder/repowiki/zh/content" ]; then
           cp -r .qoder/repowiki/zh/content/* wiki-repo/ 2>/dev/null || true
