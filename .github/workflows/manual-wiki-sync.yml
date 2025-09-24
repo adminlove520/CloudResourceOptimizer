@@ -1,52 +1,3 @@
-name: Manual Wiki Sync
-
-on:
-  workflow_dispatch:
-    inputs:
-      sync_type:
-        description: '同步类型'
-        required: true
-        default: 'full'
-        type: choice
-        options:
-        - full
-        - incremental
-      force_update:
-        description: '强制更新所有页面'
-        required: false
-        default: false
-        type: boolean
-
-jobs:
-  manual-sync:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Checkout Wiki Repository
-      uses: actions/checkout@v4
-      with:
-        repository: ${{ github.repository }}.wiki
-        path: wiki-repo
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Setup Environment
-      run: |
-        echo "SYNC_TYPE=${{ github.event.inputs.sync_type }}" >> $GITHUB_ENV
-        echo "FORCE_UPDATE=${{ github.event.inputs.force_update }}" >> $GITHUB_ENV
-        echo "TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
-
-    - name: Clean Wiki Repository (if force update)
-      if: ${{ github.event.inputs.force_update == 'true' }}
-      run: |
-        cd wiki-repo
-        # 保留 .git 目录，删除其他所有文件
-        find . -name ".git" -prune -o -type f -exec rm {} \;
-        echo "Wiki repository cleaned for force update"
-
 name: Manual Wiki Sync from .qoder/repowiki
 
 on:
@@ -92,94 +43,50 @@ jobs:
       if: ${{ github.event.inputs.force_update == 'true' }}
       run: |
         cd wiki-repo
-        # 保留 .git 目录，删除其他所有文件
         find . -name ".git" -prune -o -type f -exec rm {} \;
         echo "Wiki repository cleaned for force update"
 
     - name: Check and Sync Local Wiki Content
       run: |
-        if [ -d ".qoder/repowiki" ]; then
-          echo "✅ 找到本地wiki目录: .qoder/repowiki"
+        if [ -d ".qoder/repowiki/zh/content" ]; then
+          echo "✅ 找到Qoder wiki内容目录: .qoder/repowiki/zh/content"
           echo "📁 目录内容:"
-          ls -la .qoder/repowiki/
+          ls -la .qoder/repowiki/zh/content/
           
-          # 确保wiki仓库目录存在
           mkdir -p wiki-repo
           
-          # 清空wiki仓库内容（保留.git目录）
           if [ "${{ github.event.inputs.sync_type }}" = "full" ]; then
             find wiki-repo -mindepth 1 -name ".git" -prune -o -type f -delete
             echo "🧽 已清空目标wiki仓库（全量同步模式）"
           fi
           
-          # 复制.qoder/repowiki目录下的所有内容到wiki仓库
-          cp -r .qoder/repowiki/* wiki-repo/ 2>/dev/null || true
-          echo "✅ 已将.qoder/repowiki目录内容复制到GitHub Wiki"
+          cp -r .qoder/repowiki/zh/content/* wiki-repo/ 2>/dev/null || true
+          echo "✅ 已将.qoder/repowiki/zh/content目录内容复制到GitHub Wiki"
           
-          # 显示复制的文件
           echo "📄 同步的文件列表:"
           find wiki-repo -name "*.md" -type f | while read file; do
             echo "  - $(basename "$file")"
           done
         else
-          echo "❌ 未找到.qoder/repowiki目录"
-          echo "创建示例wiki目录和内容..."
-          mkdir -p .qoder/repowiki
-          
-          # 创建示例Home页面
-          cat > .qoder/repowiki/Home.md << 'EOF'
-# CloudResourceOptimizer
-
-欢迎使用CloudResourceOptimizer！
-
-## 快速导航
-- [项目概述](Project-Overview)
-- [使用指南](Usage-Guide)
-- [API文档](API-Documentation)
-- [配置指南](Configuration-Guide)
-
----
-*此页面由GitHub Actions自动生成*
-EOF
-          
-          # 创建示例项目概述
-          cat > .qoder/repowiki/Project-Overview.md << 'EOF'
-# 项目概述
-
-这是一个CloudResourceOptimizer项目。
-
-## 主要功能
-- 系统监控
-- 故障恢复
-- 压力测试
-
----
-*请在.qoder/repowiki目录下创建您自己的wiki内容*
-EOF
-          
-          # 同步示例内容到wiki仓库
-          cp -r .qoder/repowiki/* wiki-repo/ 2>/dev/null || true
-          echo "ℹ️ 已创建示例wiki内容并同步到GitHub Wiki"
+          echo "❌ 未找到.qoder/repowiki/zh/content目录"
+          echo "请在Qoder IDE中创建wiki内容"
+          exit 1
         fi
 
     - name: Generate Project Statistics
       run: |
         cd wiki-repo
         
-        # 生成项目统计信息
-        cat > Project-Statistics.md << 'EOF'
-        # 项目统计信息
-
-        ## 基本信息
-        - **最后更新**: ${{ env.TIMESTAMP }}
-        - **同步类型**: ${{ env.SYNC_TYPE }}
-        - **强制更新**: ${{ env.FORCE_UPDATE }}
-        - **源目录**: .qoder/repowiki
-
-        ## 文件统计
-        EOF
+        echo "# 项目统计信息" > Project-Statistics.md
+        echo "" >> Project-Statistics.md
+        echo "## 基本信息" >> Project-Statistics.md
+        echo "- **最后更新**: ${{ env.TIMESTAMP }}" >> Project-Statistics.md
+        echo "- **同步类型**: ${{ env.SYNC_TYPE }}" >> Project-Statistics.md
+        echo "- **强制更新**: ${{ env.FORCE_UPDATE }}" >> Project-Statistics.md
+        echo "- **源目录**: .qoder/repowiki/zh/content" >> Project-Statistics.md
+        echo "" >> Project-Statistics.md
+        echo "## 文件统计" >> Project-Statistics.md
         
-        # 添加文件统计
         if [ -d "../scripts" ]; then
           echo "- **Python文件数量**: $(find ../scripts -name "*.py" | wc -l)" >> Project-Statistics.md
         fi
@@ -188,7 +95,6 @@ EOF
         fi
         echo "- **Wiki文档数量**: $(find . -name "*.md" | wc -l)" >> Project-Statistics.md
         
-        # 添加最近提交信息
         echo "" >> Project-Statistics.md
         echo "## 最近提交" >> Project-Statistics.md
         echo '```' >> Project-Statistics.md
@@ -200,34 +106,32 @@ EOF
       run: |
         cd wiki-repo
         
-        # 生成动态导航
-        cat > _Sidebar.md << 'EOF'
-        ## 📚 文档导航
-
-        ### 🏠 主要页面
-        - [🏠 项目主页](Home)
-        - [📊 项目概述](Project-Overview)
-        - [📖 使用指南](Usage-Guide)
-        - [📈 项目统计](Project-Statistics)
-
-        ### 📄 技术文档
-        - [🔧 API文档](API-Documentation)
-        - [⚙️ 配置指南](Configuration-Guide)
-        - [📈 项目统计](Project-Statistics)
-
-        ### 🔗 快速链接
-        - [📦 安装说明](Usage-Guide#安装步骤)
-        - [🛠️ 配置说明](Usage-Guide#配置说明)
-        - [🔍 故障排除](Usage-Guide#故障排除)
-
-        ### 🌐 外部资源
-        - [📝 源代码](https://github.com/${{ github.repository }})
-        - [🐛 问题反馈](https://github.com/${{ github.repository }}/issues)
-        - [🚀 版本发布](https://github.com/${{ github.repository }}/releases)
-        
-        ---
-        *最后更新: ${{ env.TIMESTAMP }}*
-        EOF
+        echo "## 📚 文档导航" > _Sidebar.md
+        echo "" >> _Sidebar.md
+        echo "### 🏠 主要页面" >> _Sidebar.md
+        echo "- [🏠 项目主页](Home)" >> _Sidebar.md
+        echo "- [📊 项目概述](项目概述)" >> _Sidebar.md
+        echo "- [📖 使用方法](使用方法)" >> _Sidebar.md
+        echo "- [📈 项目统计](Project-Statistics)" >> _Sidebar.md
+        echo "" >> _Sidebar.md
+        echo "### 📄 技术文档" >> _Sidebar.md
+        echo "- [🛠️ 安装与配置](安装与配置)" >> _Sidebar.md
+        echo "- [🏢 架构设计](架构设计)" >> _Sidebar.md
+        echo "- [🔧 系统恢复功能](系统恢复功能)" >> _Sidebar.md
+        echo "- [🔍 故障排除](故障排除)" >> _Sidebar.md
+        echo "" >> _Sidebar.md
+        echo "### 🔗 快速链接" >> _Sidebar.md
+        echo "- [📦 安装说明](Usage-Guide#安装步骤)" >> _Sidebar.md
+        echo "- [🛠️ 配置说明](Usage-Guide#配置说明)" >> _Sidebar.md
+        echo "- [🔍 故障排除](Usage-Guide#故障排除)" >> _Sidebar.md
+        echo "" >> _Sidebar.md
+        echo "### 🌐 外部资源" >> _Sidebar.md
+        echo "- [📝 源代码](https://github.com/${{ github.repository }})" >> _Sidebar.md
+        echo "- [🐛 问题反馈](https://github.com/${{ github.repository }}/issues)" >> _Sidebar.md
+        echo "- [🚀 版本发布](https://github.com/${{ github.repository }}/releases)" >> _Sidebar.md
+        echo "" >> _Sidebar.md
+        echo "---" >> _Sidebar.md
+        echo "*最后更新: ${{ env.TIMESTAMP }}*" >> _Sidebar.md
 
     - name: Commit and Push Changes
       run: |
@@ -241,7 +145,7 @@ EOF
           echo "❌ 没有检测到更改，无需提交"
           echo "NO_CHANGES=true" >> $GITHUB_ENV
         else
-          commit_message="📚 手动同步Wiki从.qoder/repowiki - ${{ env.SYNC_TYPE }} (${{ env.TIMESTAMP }})"
+          commit_message="📚 手动同步Wiki从Qoder IDE - ${{ env.SYNC_TYPE }} (${{ env.TIMESTAMP }})"
           git commit -m "$commit_message"
           git push
           echo "✅ Wiki同步成功！"
@@ -255,7 +159,7 @@ EOF
         echo "- **同步时间**: ${{ env.TIMESTAMP }}" >> $GITHUB_STEP_SUMMARY
         echo "- **同步类型**: ${{ env.SYNC_TYPE }}" >> $GITHUB_STEP_SUMMARY
         echo "- **强制更新**: ${{ env.FORCE_UPDATE }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **源目录**: .qoder/repowiki" >> $GITHUB_STEP_SUMMARY
+        echo "- **源目录**: .qoder/repowiki/zh/content" >> $GITHUB_STEP_SUMMARY
         
         if [ "${{ env.NO_CHANGES }}" = "true" ]; then
           echo "- **结果**: ❌ 没有检测到更改" >> $GITHUB_STEP_SUMMARY

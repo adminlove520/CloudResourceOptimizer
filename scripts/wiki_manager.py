@@ -14,13 +14,13 @@ class WikiManager:
     def __init__(self):
         # 由于脚本现在在scripts目录下，需要指向上级目录
         self.base_dir = Path(__file__).parent.parent
-        self.wiki_dir = self.base_dir / ".qoder" / "repowiki"
+        self.wiki_dir = self.base_dir / ".qoder" / "repowiki" / "zh" / "content"
         self.wiki_dir.mkdir(parents=True, exist_ok=True)
     
     def list_wiki_files(self):
         """列出所有wiki文件"""
         print(f"📁 Wiki目录: {self.wiki_dir}")
-        print("📄 Wiki文件列表:")
+        print("📄 Wiki文件列表 (Qoder IDE管理):")
         
         if not self.wiki_dir.exists():
             print("  (目录不存在)")
@@ -36,51 +36,25 @@ class WikiManager:
             print(f"  - {file.name} ({size} bytes)")
     
     def create_template(self, filename):
-        """创建wiki模板文件"""
-        if not filename.endswith('.md'):
-            filename += '.md'
-            
-        filepath = self.wiki_dir / filename
-        
-        if filepath.exists():
-            print(f"❌ 文件 {filename} 已存在")
-            return
-            
-        template_content = f"""# {filename[:-3]}
-
-## 概述
-
-请在这里添加内容描述...
-
-## 主要内容
-
-### 章节1
-内容描述...
-
-### 章节2
-内容描述...
-
-## 相关链接
-- [首页](Home)
-- [使用指南](Usage-Guide)
-
----
-*创建时间: {self._get_timestamp()}*
-"""
-        
-        filepath.write_text(template_content, encoding='utf-8')
-        print(f"✅ 已创建模板文件: {filename}")
+        """提示用户在Qoder IDE中创建wiki文件"""
+        print(f"💡 建议在Qoder IDE中直接创建wiki文件: {filename}")
+        print("   1. 在Qoder IDE中打开项目")
+        print("   2. 导航到 .qoder/repowiki/zh/content/ 目录")
+        print("   3. 创建新的.md文件")
+        print("   4. 使用Qoder IDE的wiki编辑功能")
     
     def sync_to_github(self):
         """提示如何同步到GitHub Wiki"""
         print("🔄 同步到GitHub Wiki:")
         print("1. 提交更改到git仓库:")
-        print("   git add .qoder/repowiki/")
+        print("   git add .qoder/repowiki/zh/content/")
         print("   git commit -m '更新wiki内容'")
         print("   git push")
         print("")
         print("2. GitHub Actions会自动检测到更改并同步到GitHub Wiki")
         print("3. 或者在GitHub仓库的Actions页面手动触发'Manual Wiki Sync'")
+        print("")
+        print("💡 提示: 您可以直接在Qoder IDE中编辑wiki内容！")
     
     def backup_wiki(self):
         """备份wiki内容"""
@@ -105,14 +79,13 @@ def main():
     manager = WikiManager()
     
     if len(sys.argv) < 2:
-        print("📚 CloudResourceOptimizer Wiki管理工具")
+        print("📚 CloudResourceOptimizer Wiki管理工具 (Qoder IDE)")
         print("使用方法:")
         print("  python scripts/wiki_manager.py list          # 列出wiki文件")
-        print("  python scripts/wiki_manager.py create <名称>  # 创建新的wiki文件")
         print("  python scripts/wiki_manager.py sync          # 查看同步方法")
         print("  python scripts/wiki_manager.py backup        # 备份wiki内容")
         print("")
-        print("💡 提示: 请在项目根目录下运行此脚本")
+        print("💡 提示: 请在Qoder IDE中直接编辑wiki内容")
         return
     
     command = sys.argv[1].lower()
@@ -121,7 +94,8 @@ def main():
         manager.list_wiki_files()
     elif command == "create":
         if len(sys.argv) < 3:
-            print("❌ 请提供文件名")
+            print("💡 建议直接在Qoder IDE中创建wiki文件")
+            print("   导航到 .qoder/repowiki/zh/content/ 目录")
             return
         filename = sys.argv[2]
         manager.create_template(filename)
