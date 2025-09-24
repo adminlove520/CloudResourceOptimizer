@@ -1,0 +1,125 @@
+name: Sync Local Wiki to GitHub Wiki
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - '.qoder/repowiki/**'
+  workflow_dispatch:
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Checkout Wiki Repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository }}.wiki
+        path: wiki-repo
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Check Local Wiki Directory
+      run: |
+        if [ -d ".qoder/repowiki" ]; then
+          echo "✅ 找到本地wiki目录: .qoder/repowiki"
+          echo "📁 目录内容:"
+          ls -la .qoder/repowiki/
+        else
+          echo "❌ 未找到.qoder/repowiki目录"
+          echo "创建示例wiki目录..."
+          mkdir -p .qoder/repowiki
+          
+          # 创建示例Home页面
+          cat > .qoder/repowiki/Home.md << 'EOF'
+# CloudResourceOptimizer
+
+欢迎使用CloudResourceOptimizer！这是从.qoder/repowiki目录同步的wiki内容。
+
+## 快速导航
+- [项目概述](Project-Overview)
+- [使用指南](Usage-Guide)
+- [API文档](API-Documentation)
+- [配置指南](Configuration-Guide)
+EOF
+        fi
+
+    - name: Sync Local Wiki to GitHub Wiki
+      run: |
+        # 确保wiki仓库目录存在
+        mkdir -p wiki-repo
+        
+        # 清空wiki仓库内容（保留.git目录）
+        find wiki-repo -mindepth 1 -name ".git" -prune -o -type f -delete
+        
+        # 复制.qoder/repowiki目录下的所有内容到wiki仓库
+        if [ -d ".qoder/repowiki" ]; then
+          cp -r .qoder/repowiki/* wiki-repo/ 2>/dev/null || true
+          echo "✅ 已将.qoder/repowiki目录内容复制到GitHub Wiki"
+          
+          # 显示复制的文件
+          echo "📄 同步的文件列表:"
+          find wiki-repo -name "*.md" -type f | while read file; do
+            echo "  - $(basename "$file")"
+          done
+        else
+          echo "❌ .qoder/repowiki目录不存在，无法同步"
+          exit 1
+        fi
+
+    - name: Commit and Push Wiki Changes
+      run: |
+        cd wiki-repo
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # 添加所有更改
+        git add .
+        
+        # 检查是否有更改需要提交
+        if git diff --staged --quiet; then
+          echo "ℹ️ 没有检测到更改，无需提交"
+        else
+          # 生成提交信息，包含更改文件列表
+          echo "📚 从.qoder/repowiki同步wiki内容 - $(date '+%Y-%m-%d %H:%M:%S')" > commit_message.txt
+          echo "" >> commit_message.txt
+          echo "同步的文件:" >> commit_message.txt
+          git status --porcelain | sed 's/^/- /' >> commit_message.txt
+          
+          git commit -F commit_message.txt
+          git push
+          echo "✅ Wiki内容已成功同步到GitHub Wiki！"
+        fi
+
+    - name: Create Summary
+      run: |
+        echo "## 🎯 Wiki同步结果" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **同步时间**: $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+        echo "- **源目录**: .qoder/repowiki" >> $GITHUB_STEP_SUMMARY
+        echo "- **目标**: GitHub Wiki" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d ".qoder/repowiki" ]; then
+          file_count=$(find .qoder/repowiki -name "*.md" -type f | wc -l)
+          echo "- **同步文件数量**: $file_count" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📄 同步的文件" >> $GITHUB_STEP_SUMMARY
+          find .qoder/repowiki -name "*.md" -type f | while read file; do
+            filename=$(basename "$file")
+            echo "- $filename" >> $GITHUB_STEP_SUMMARY
+          done
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 访问链接" >> $GITHUB_STEP_SUMMARY
+        echo "[📖 查看GitHub Wiki](https://github.com/${{ github.repository }}/wiki)" >> $GITHUB_STEP_SUMMARY

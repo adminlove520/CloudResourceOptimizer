@@ -173,10 +173,69 @@ python scripts/dynamic_redundancy.py
 - 开发Web管理界面
 - 增加告警机制
 
+## GitHub Actions 自动化
+
+项目集成了GitHub Actions工作流，提供以下自动化功能：
+
+### Wiki自动同步
+- **自动触发**：当推送到main/master分支时，自动同步wiki内容
+- **手动同步**：在Actions页面可手动触发wiki同步
+- **内容同步**：自动将README.md、wiki/和docs/目录内容同步到GitHub Wiki
+
+### 使用方法
+
+1. **自动同步**：推送代码到main分支即可自动触发
+2. **手动同步**：
+   - 访问GitHub仓库的Actions页面
+   - 选择"Manual Wiki Sync"工作流
+   - 点击"Run workflow"按钮
+   - 选择同步类型（完整/增量）和是否强制更新
+
+### Wiki文档结构
+- **Home**: 项目主页（来自README.md）
+- **Project-Overview**: 项目概述和结构说明
+- **Usage-Guide**: 详细使用指南
+- **API-Documentation**: API接口文档
+- **Configuration-Guide**: 配置指南
+- **Project-Statistics**: 项目统计信息
+
+## 文档和Wiki
+
+项目提供完整的文档支持：
+
+- **在线Wiki**: [GitHub Wiki页面](../../wiki) - 包含详细的使用指南和API文档
+- **本地文档**: `.qoder/repowiki/`目录包含所有文档源文件
+- **自动同步**: 文档更改会自动同步到GitHub Wiki
+
+### Wiki管理工具
+使用内置的wiki管理工具：
+
+```bash
+# 列出wiki文件
+python scripts/wiki_manager.py list
+
+# 创建新的wiki文件
+python scripts/wiki_manager.py create "新页面名称"
+
+# 查看同步方法
+python scripts/wiki_manager.py sync
+
+# 备份wiki内容
+python scripts/wiki_manager.py backup
+```
+
+### Wiki内容结构
+- **Home.md**: 项目主页和导航
+- **Usage-Guide.md**: 详细使用指南
+- **Project-Overview.md**: 项目概述和架构
+- **API-Documentation.md**: API接口文档
+- **Configuration-Guide.md**: 配置指南
+
 ## 故障排除
 
 1. **无法启动glances监控**：检查是否安装了glances，或手动运行`pip install glances `
 2. **无法安装glances**：手动运行`sudo yum install glances -y` 或 `sudo apt-get install glances`
-2. **权限错误**：确保以管理员/root权限运行脚本
-3. **内存调整失败**：检查系统内存是否充足，以及是否有足够的权限
-4. **磁盘空间不足**：如果磁盘空间不足，脚本会自动跳过磁盘调整操作
+3. **权限错误**：确保以管理员/root权限运行脚本
+4. **内存调整失败**：检查系统内存是否充足，以及是否有足够的权限
+5. **磁盘空间不足**：如果磁盘空间不足，脚本会自动跳过磁盘调整操作
+6. **Wiki同步失败**：检查GitHub Actions日志，确认仓库有Wiki功能开启
